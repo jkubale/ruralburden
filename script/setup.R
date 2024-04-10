@@ -50,6 +50,26 @@ wisc_rawsub <- wisc_raw2%>%
   group_by(geoid, week)%>%
   summarise(across(contains("NEW"), sum, .names = "{.col}_sum"))
 
+wisc_rawsub_notime <- wisc_raw2%>%
+  select(OBJECTID,
+         GEOID,
+         GEO,
+         Date,
+         POS_NEW_CONF, 
+         POS_NEW_PROB,
+         POS_NEW_CP,
+         DTH_NEW_CONF,
+         DTH_NEW_PROB,
+         DTH_NEW_CP
+  )%>%
+  ## add week variable to summarize
+  mutate(date = mdy(Date),
+         week = as.numeric(floor(interval(as.Date("2020-01-22"), date)/weeks(1)+1)),
+         geoid = as.numeric(GEOID))%>%
+  ## group by census tract and week and summarize outcomes -- try across to clean up
+  group_by()%>%
+  summarise(across(contains("NEW"), sum, .names = "{.col}_sum"))
+
 ## add tract pop to wisc_rawsub
 wisc_rawsub2 <- left_join(wisc_rawsub, wisc_pop, by="geoid") # some NA
 

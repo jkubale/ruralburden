@@ -7,6 +7,44 @@ load(file = "data/wisc_subruca04022024.rda")
 wisc_subruca2 <- wisc_subruca%>%
   filter(pri_ruca !=99)
 
+
+# get number/proportion of each ruca score by county
+ruca_num <- wisc_ruca%>%
+  ungroup%>%
+  filter(pri_ruca !=99)%>%
+  group_by(county, pri_ruca)%>%
+  summarise(num_ruca = n())%>%
+  ungroup()%>%
+  group_by(county)%>%
+  mutate(tot_tracts = max(cumsum(num_ruca)),
+         ruca_prop = num_ruca/tot_tracts)%>%
+  select(county, pri_ruca, ruca_prop)
+
+wisc_ruca2 <- wisc_ruca%>%
+  filter(pri_ruca !=99)%>%
+  left_join(., ruca_num, by = c("county", "pri_ruca"))%>%
+  mutate(wt_ruca = pri_ruca*ruca_prop)%>%
+  group_by(county)%>%
+  summarise(mn_wt_ruca = mean(wt_ruca))%>%
+  ungroup()%>%
+  mutate(log_mn_wt_ruca = log(mn_wt_ruca),
+         quart_ruca = case_when(
+           log_mn_wt_ruca <= -0.0922 ~ 1,
+           log_mn_wt_ruca > -0.0922 & log_mn_wt_ruca <= 0.8120 ~ 2,
+           log_mn_wt_ruca > 0.8120 & log_mn_wt_ruca < 1.1781 ~ 3,
+           log_mn_wt_ruca > 1.1781 ~ 4
+         ))
+         # quart_logwtruca = gtools::quantcut(log_mn_wt_ruca))
+
+summary(wisc_ruca2$log_mn_wt_ruca) #used to find quartiles -- split out above code so this can be put between so code flows correctly
+
+train <- wisc_ruca2%>%
+  ungroup()%>%
+  # group_by(quart_ruca)%>%
+  slice_sample(n=54, by=quart_ruca, replace = F) ## something not working right
+
+
+### 
 tracts <- unique(wisc_subruca2$geoid)
 tract_sample <- sample(tracts, 150)
 
