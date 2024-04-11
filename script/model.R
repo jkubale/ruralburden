@@ -7,7 +7,7 @@ load(file = "data/wisc_subruca04022024.rda")
 wisc_subruca2 <- wisc_subruca%>%
   filter(pri_ruca !=99)
 
-
+  
 # get number/proportion of each ruca score by county
 ruca_num <- wisc_ruca%>%
   ungroup%>%
@@ -38,11 +38,20 @@ wisc_ruca2 <- wisc_ruca%>%
 
 summary(wisc_ruca2$log_mn_wt_ruca) #used to find quartiles -- split out above code so this can be put between so code flows correctly
 
+set.seed(894894)
 train <- wisc_ruca2%>%
   ungroup()%>%
-  # group_by(quart_ruca)%>%
-  slice_sample(n=54, by=quart_ruca, replace = F) ## something not working right
+  group_by(quart_ruca)%>%
+  slice_sample(prop=.75)
 
+test <- anti_join(wisc_ruca2, train, by="county")
+
+save(train, file = "data/training_counties.rda")
+save(test, file = "data/test_counties.rda")
+
+# next steps:
+## split dataset
+## fit training models
 
 ### 
 tracts <- unique(wisc_subruca2$geoid)
