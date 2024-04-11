@@ -26,7 +26,20 @@ wisc_ruca2 <- wisc_ruca%>%
   mutate(wt_ruca = pri_ruca*ruca_prop)%>%
   group_by(county)%>%
   summarise(mn_wt_ruca = mean(wt_ruca))%>%
-  ungroup()%>%
+  ungroup()
+
+
+## explore ways to account for different amount of observations per county -- largely driven by Milwaukee 
+county_obs <- wisc_subruca2%>%
+  group_by(county)%>%
+  summarise(num_obs = n())
+
+summary(county_obs)
+summary(wisc_ruca2$log_mn_wt_ruca)
+summary(wisc_ruca2$mn_wt_ruca)
+
+
+wisc_ruca2%>%
   mutate(log_mn_wt_ruca = log(mn_wt_ruca),
          quart_ruca = case_when(
            log_mn_wt_ruca <= -0.0922 ~ 1,
@@ -34,11 +47,10 @@ wisc_ruca2 <- wisc_ruca%>%
            log_mn_wt_ruca > 0.8120 & log_mn_wt_ruca < 1.1781 ~ 3,
            log_mn_wt_ruca > 1.1781 ~ 4
          ))
-         # quart_logwtruca = gtools::quantcut(log_mn_wt_ruca))
 
-summary(wisc_ruca2$log_mn_wt_ruca) #used to find quartiles -- split out above code so this can be put between so code flows correctly
-
+# split counties into training/testing groups (75:25)
 set.seed(894894)
+
 train <- wisc_ruca2%>%
   ungroup()%>%
   group_by(quart_ruca)%>%
@@ -46,8 +58,20 @@ train <- wisc_ruca2%>%
 
 test <- anti_join(wisc_ruca2, train, by="county")
 
+# save lists of train/test counties
 save(train, file = "data/training_counties.rda")
 save(test, file = "data/test_counties.rda")
+
+load("data/training_counties.rda")
+load("data/test_counties.rda")
+
+## may need to account for number of observations as well
+
+wi_training_full <- inner_join(train, wisc_subruca2, by="county")
+wi_testing_full <- anti_join(wisc_subruca2, train, by="county")
+
+save(wi_training_full, file = "data/wi_train_full.rda")
+save(wi_testing_full, file = "data/wi_test_full.rda")
 
 # next steps:
 ## split dataset
@@ -55,7 +79,7 @@ save(test, file = "data/test_counties.rda")
 
 ### 
 tracts <- unique(wisc_subruca2$geoid)
-tract_sample <- sample(tracts, 150)
+tract_sample <- sample(tracts, 50)
 
 dat_sub <- wisc_subruca2%>%
   filter(geoid %in% tract_sample)
@@ -81,7 +105,7 @@ dat_sub2 <- dat_sub%>%
 
 model1 <- glmer(POS_NEW_CP_sum ~ bs(week_shift) + as.factor(pri_ruca) + (1|geoid) + (1|county), offset = log(tract_pop2010), data=dat_sub2, family=poisson)
 summary(model1)
-
+extract_eq(model1)
 
 model2b <- glmer(POS_NEW_CP_sum ~ bs(week_shift)  + (1|pri_ruca2) +  (1|geoid) + (1|county), offset = log(tract_pop2010), data=dat_sub2, family=poisson)
 # chk if census tracts in same county can have different ruca
