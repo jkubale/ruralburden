@@ -1,6 +1,6 @@
 library(lme4)
 library(dplyr)
-
+library(splines)
 
 load(file = "data/wisc_subruca04022024.rda")
 
@@ -67,11 +67,44 @@ load("data/test_counties.rda")
 
 ## may need to account for number of observations as well
 
-wi_training_full <- inner_join(train, wisc_subruca2, by="county")
-wi_testing_full <- anti_join(wisc_subruca2, train, by="county")
+wi_training_full <- inner_join(train, wisc_subruca2, by="county")%>%
+  ungroup()%>%
+  filter(tract_pop2010 != 0, is.na(tract_pop2010)==F)%>%
+  mutate(pri_rucaf = factor(pri_ruca, ordered=F),
+         geoidf = factor(geoid, ordered=F),
+         countyf = factor(county, ordered=F),
+         week_shift = week-104)%>%
+  ungroup()
+
+training_county_pop <- wi_training_full%>%
+  select(countyf, geoidf, tract_pop2010)%>%
+  distinct(geoidf, .keep_all = T)%>%
+  group_by(countyf)%>%
+  summarise(county_pop = sum(tract_pop2010))
+
+wi_training_full <- left_join(wi_training_full, training_county_pop, by="countyf")
+  
+
+wi_testing_full <- anti_join(wisc_subruca2, train, by="county")%>%
+  ungroup()%>%
+  filter(tract_pop2010 != 0, is.na(tract_pop2010)==F)%>%
+  mutate(pri_rucaf = factor(pri_ruca, ordered=F),
+         geoidf = factor(geoid, ordered=F),
+         countyf = factor(county, ordered=F),
+         week_shift = week-104)%>%
+  ungroup()
+
+testing_county_pop <- wi_testing_full%>%
+  select(countyf, geoidf, tract_pop2010)%>%
+  distinct(geoidf, .keep_all = T)%>%
+  group_by(countyf)%>%
+  summarise(county_pop = sum(tract_pop2010))
+
+wi_testing_full <- left_join(wi_testing_full, testing_county_pop, by="countyf")
 
 save(wi_training_full, file = "data/wi_train_full.rda")
 save(wi_testing_full, file = "data/wi_test_full.rda")
+
 
 # next steps:
 ## split dataset
@@ -83,7 +116,7 @@ tract_sample <- sample(tracts, 50)
 
 dat_sub <- wisc_subruca2%>%
   filter(geoid %in% tract_sample)
-library(splines)
+
 
 max_wk <- wisc_subruca2%>%
   ungroup()%>%
