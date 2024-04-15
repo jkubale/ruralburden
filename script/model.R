@@ -127,7 +127,9 @@ max_wk <- wisc_subruca2%>%
 dat_sub2 <- dat_sub%>%
   ungroup()%>%
   mutate(week_shift = week-104,
-         pri_ruca2 = as.factor(pri_ruca))
+         pri_rucaf = factor(pri_ruca, ordered=F),
+         geoidf = factor(geoid, ordered=F),
+         countyf = factor(county, ordered=F))
 
 ## run with spatial component and no time component 
 ## select ruca codes for training and testing sets
@@ -136,9 +138,28 @@ dat_sub2 <- dat_sub%>%
 ## how do these compare to crude rates
 ## how different are ruca estimates using both or just county
 
-model1 <- glmer(POS_NEW_CP_sum ~ bs(week_shift) + as.factor(pri_ruca) + (1|geoid) + (1|county), offset = log(tract_pop2010), data=dat_sub2, family=poisson)
+model1a <- glmer.nb(POS_NEW_CP_sum ~ bs(week_shift) + pri_rucaf + (1|geoid) + (1|county), offset = log(tract_pop2010), data=dat_sub2, verbose = T)
 summary(model1)
 extract_eq(model1)
+
+library(glmmTMB)
+model1 <- glmmTMB(POS_NEW_CP_sum ~ bs(week_shift) + 
+                     pri_rucaf + 
+                     (1|geoid) + 
+                     (1|county) +
+                     offset(log(tract_pop2010)), data=dat_sub2, family = nbinom2)
+
+model2 <- glmmTMB(POS_NEW_CP_sum ~ bs(week_shift) + 
+                    pri_rucaf + 
+                    (1|geoid) + 
+                    (1|county) +
+                    offset(log(tract_pop2010)), data=dat_sub2, family = nbinom1)
+
+
+performance::check_overdispersion(model1)
+performance::check_overdispersion(model2)
+summary(model1)
+summary(model2)
 
 model2b <- glmer(POS_NEW_CP_sum ~ bs(week_shift)  + (1|pri_ruca2) +  (1|geoid) + (1|county), offset = log(tract_pop2010), data=dat_sub2, family=poisson)
 # chk if census tracts in same county can have different ruca
