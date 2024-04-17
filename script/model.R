@@ -1,6 +1,9 @@
-library(lme4)
+# library(lme4)
+library(glmmTMB)
+library(tictoc)
 library(dplyr)
 library(splines)
+library(Metrics)
 
 load(file = "data/wisc_subruca04022024.rda")
 
@@ -104,6 +107,60 @@ wi_testing_full <- left_join(wi_testing_full, testing_county_pop, by="countyf")
 
 save(wi_training_full, file = "data/wi_train_full.rda")
 save(wi_testing_full, file = "data/wi_test_full.rda")
+
+
+load("data/wi_train_full.rda")
+load("data/wi_test_full.rda")
+
+## fit models----
+county_only_genp <- glmmTMB(POS_NEW_CP_sum ~ bs(week_shift) + 
+                    pri_rucaf + 
+                    (1|geoidf) + 
+                    (1|countyf) +
+                    offset(log(county_pop/1e4)), data=wi_training_full, family = genpois)
+
+county_plus_genp <- glmmTMB(POS_NEW_CP_sum ~ bs(week_shift) + 
+                    pri_rucaf + 
+                    (1|geoidf) + 
+                    (1|countyf) +
+                    offset(log(tract_pop2010/1e4)), data=wi_training_full, family = genpois)
+
+## make predictions----
+
+### first make predictions using raw data
+wi_testing_full <- wi_testing_full%>%
+  ungroup()%>%
+  group_by(countyf, week_shift)%>%
+  mutate(rate_county = POS_NEW_CP_sum/county_pop)%>%
+  ungroup()%>%
+  group_by(geoidf, week_shift)%>%
+  mutate(rate_tract = POS_NEW_CP_sum/tract_pop2010)%>%
+  ungroup()
+
+test_county <- wi_testing_full%>%
+  select(week_shift, pri_rucaf, county_pop)
+  
+
+test_tract <- wi_testing_full%>%
+  select(week_shift, pri_rucaf, tract_pop2010)
+
+pred_county_onlygenp <- county_only_genp%>%
+  predict(test_county, re.form = NA, type="response")
+
+data.frame(RMSE = Metrics::rmse(wi_testing_full$rate_county, pred_county_onlygenp),
+           R2 = (cor(wi_testing_full$rate_county, pred_county_onlygenp))^2,
+           MAE = Metrics::mae(wi_testing_full$rate_county, pred_county_onlygenp))
+
+pred_county_plusgenp <- county_plus_genp%>%
+  predict(test_tract, re.form = NA, type="response")
+
+data.frame(RMSE = Metrics::rmse(wi_testing_full$rate_tract, pred_county_plusgenp),
+           R2 = (cor(wi_testing_full$rate_tract, pred_county_plusgenp))^2,
+           MAE = Metrics::mae(wi_testing_full$rate_tract, pred_county_plusgenp))
+
+
+### then make predictions by RUCA code
+
 
 
 # next steps:
