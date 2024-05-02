@@ -1,5 +1,6 @@
 # library(lme4)
 library(glmmTMB)
+library(mgcv)
 library(tictoc)
 library(dplyr)
 library(splines)
@@ -10,38 +11,19 @@ load(file = "data/wisc_subruca04202024.rda")
 # load("data/wisc_subruca_notime04202024.rda")
 # wisc_subruca2 <- wisc_subruca%>%
 #   filter(as.numeric(pri_rucaf) !=99)
-ruca <- read_excel("data/ruca2010revised.xlsx", skip = 1)
-wisc_ruca <- ruca%>%
-  filter(`Select State`=="WI")%>%
-  mutate(geoidf = factor(`State-County-Tract FIPS Code (lookup by address at http://www.ffiec.gov/Geocode/)`), ordered=F)%>%
-  select(geoidf,
-         county = `Select County`,
-         pri_ruca = `Primary RUCA Code 2010`,
-         sec_ruca = `Secondary RUCA Code, 2010 (see errata)`, 
-         tract_pop2010 = `Tract Population, 2010`, 
-         tract_area2010 = `Land Area (square miles), 2010`,
-         pop_dens2010 = `Population Density (per square mile), 2010`)
+# ruca <- read_excel("data/ruca2010revised.xlsx", skip = 1)
+# wisc_ruca <- ruca%>%
+#   filter(`Select State`=="WI")%>%
+#   mutate(geoidf = factor(`State-County-Tract FIPS Code (lookup by address at http://www.ffiec.gov/Geocode/)`), ordered=F)%>%
+#   select(geoidf,
+#          county = `Select County`,
+#          pri_ruca = `Primary RUCA Code 2010`,
+#          sec_ruca = `Secondary RUCA Code, 2010 (see errata)`, 
+#          tract_pop2010 = `Tract Population, 2010`, 
+#          tract_area2010 = `Land Area (square miles), 2010`,
+#          pop_dens2010 = `Population Density (per square mile), 2010`)
   
-# get number/proportion of each ruca score by county
-ruca_num <- wisc_ruca%>%
-  ungroup%>%
-  filter(pri_ruca !=99)%>%
-  group_by(county, pri_ruca)%>%
-  summarise(num_ruca = n())%>%
-  ungroup()%>%
-  group_by(county)%>%
-  mutate(tot_tracts = max(cumsum(num_ruca)),
-         ruca_prop = num_ruca/tot_tracts)%>%
-  select(county, pri_ruca, ruca_prop)
 
-wisc_ruca2 <- wisc_ruca%>%
-  filter(pri_ruca !=99)%>%
-  left_join(., ruca_num, by = c("county", "pri_ruca"))%>%
-  mutate(wt_ruca = pri_ruca*ruca_prop)%>%
-  group_by(county)%>%
-  summarise(mn_wt_ruca = mean(wt_ruca))%>%
-  mutate(log_mn_wt_ruca = log(mn_wt_ruca))%>%
-  ungroup()
 
 
 ## explore ways to account for different amount of observations per county -- largely driven by Milwaukee 
