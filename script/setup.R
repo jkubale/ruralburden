@@ -13,6 +13,8 @@ library(dplyr)
 library(lubridate)
 library(ggplot2)
 
+source("script/rural_functions.r")
+
 vars <- c("OBJECTID", "geoidf", "GEO", "Date", "POS_NEW_CONF", "POS_NEW_PROB", "POS_NEW_CP", "DTH_NEW_CONF", 
           "DTH_NEW_PROB", "DTH_NEW_CP")
 
@@ -48,13 +50,6 @@ wisc_ruca <- read_excel("data/ruca2010revised.xlsx", skip = 1)%>%
          tract_area2010 = `Land Area (square miles), 2010`,
          pop_dens2010 = `Population Density (per square mile), 2010`)
 
-# wisc_tractwkruca <- left_join(wisc_tractwk2, wisc_ruca, by="geoidf")%>%
-#   mutate(week_shift = week-104,
-#          countyf = factor(county, ordered=F),
-#          pri_rucaf = factor(pri_ruca, ordered=F),
-#          tract_pop10k = tract_pop/1e4)%>%
-#   select(geoidf, countyf, pri_rucaf, week_shift, POS_NEW_CP_sum, tract_pop, tract_pop10k)%>%
-#   filter(is.na(tract_pop10k)==F)
 
 ## create tract dataset by week
 wisc_tractwk <- raw_impshp(wisc_raw, vars)
@@ -87,11 +82,6 @@ wisc_ruca2 <- wisc_ruca%>%
   mutate(log_mn_wt_ruca = log(mn_wt_ruca))%>%
   ungroup()
 
-# county_obs <- wisc_subruca%>%
-#   group_by(countyf)%>%
-#   summarise(num_obs = n())
-# 
-# summary(county_obs)
 summary(wisc_ruca2$log_mn_wt_ruca)
 summary(wisc_ruca2$mn_wt_ruca)
 
@@ -114,156 +104,55 @@ train <- wisc_ruca2%>%
 
 test <- anti_join(wisc_ruca2, train, by="countyf")
 
+wisc_tractwk_train <- inner_join(wisc_tractwk, train, by="countyf")%>%
+  ungroup()%>%
+  group_by(geoidf)%>%
+  arrange(week)%>%
+  mutate(prior_POS_CP1 = lag(POS_NEW_CP_sum),
+         prior_POS_CP = case_when(
+           is.na(prior_POS_CP1) ~0,
+           T~prior_POS_CP1
+         ))%>%
+  select(-prior_POS_CP1)
 
-
-## subset data to wanted variables to assess sub county variability (may add more later)
-# wisc_tractwk <- wisc_raw%>%
-#   select(OBJECTID,
-#          GEOID,
-#          GEO,
-#          Date,
-#          POS_NEW_CONF, 
-#          POS_NEW_PROB,
-#          POS_NEW_CP,
-#          DTH_NEW_CONF,
-#          DTH_NEW_PROB,
-#          DTH_NEW_CP
-#          )%>%
-#   ## add week variable to summarize
-#   mutate(date = mdy(Date),
-#     week = as.numeric(floor(interval(as.Date("2020-01-22"), date)/weeks(1)+1)),
-#     geoid = as.numeric(GEOID),
-#     geoidf = factor(geoid, ordered=F))%>%
-#   ## group by census tract and week and summarize outcomes -- try across to clean up
-#   group_by(geoidf, week)%>%
-#   summarise(across(contains("NEW"), sum, .names = "{.col}_sum"))
-
-
-# create tract dataset with single time point
-# wisc_rawsub_plus_notime <- wisc_raw2%>%
-#   select(OBJECTID,
-#          GEOID,
-#          GEO,
-#          Date,
-#          POS_NEW_CONF, 
-#          POS_NEW_PROB,
-#          POS_NEW_CP,
-#          DTH_NEW_CONF,
-#          DTH_NEW_PROB,
-#          DTH_NEW_CP
-#   )%>%
-#   ## add week variable to summarize
-#   mutate(geoid = as.numeric(GEOID),
-#          geoidf = factor(GEOID, ordered=F))%>%
-#   ## group by census tract and week and summarize outcomes -- try across to clean up
-#   group_by(geoidf)%>%
-#   summarise(across(contains("NEW"), sum, .names = "{.col}_sum"))
-
-## add tract pop to wisc_rawsub
-wisc_tractwk2 <- left_join(wisc_tractwk, wisc_tract_pop, by="geoidf")%>%
-  filter(is.na(tract_pop)==F) # remove NA
-
-# wisc_rawsub_plus_notime2 <- left_join(wisc_rawsub_plus_notime, wisc_tract_pop, by="geoidf") # some NA
-
-
-# chk <- filter(wisc_rawsub2, is.na(tract_pop))
-# table(chk$geoid, useNA = "always")
-
-## missing tract pop (or missing from cleaned wisconsin dataset?)
-# 55025991702 55025991703 55031990000 55059990000 55071990000 55075990000 55079980000 55083990000 55089990000 
-# chk2 <- wisc%>%
-#   filter(tract_fips10 %in% c("55025991702",
-#                       "55025991703",
-#                       "55031990000",
-#                       "55059990000",
-#                       "55071990000",
-#                       "55075990000",
-#                       "55079980000",
-#                       "55083990000",
-#                       "55089990000" ))
-## will ask Robert (can ignore for now as not estimating pop rates)
-
-# Import RUCA codes
-ruca <- read_excel("data/ruca2010revised.xlsx", skip = 1)
-wisc_ruca <- ruca%>%
-  filter(`Select State`=="WI")%>%
-  mutate(geoidf = factor(`State-County-Tract FIPS Code (lookup by address at http://www.ffiec.gov/Geocode/)`), ordered=F)%>%
-  select(geoidf,
-         county = `Select County`,
-         pri_ruca = `Primary RUCA Code 2010`,
-         sec_ruca = `Secondary RUCA Code, 2010 (see errata)`, 
-         tract_pop2010 = `Tract Population, 2010`, 
-         tract_area2010 = `Land Area (square miles), 2010`,
-         pop_dens2010 = `Population Density (per square mile), 2010`)
-
-# Merge data and RUCA codes----
-
-
-
-save(wisc_tractwkruca, file = "data/wisc_tractwkruca05022024.rda")
-
-# create county dataset
-
-
-# wisc_subruca_notime <- left_join(wisc_rawsub_plus_notime2, wisc_ruca, by="geoidf")%>%
-#   mutate(countyf = factor(county, ordered=F),
-#          pri_rucaf = factor(pri_ruca, ordered=F),
-#          tract_pop10k = tract_pop/1e4)%>%
-#   select(geoidf, countyf, pri_rucaf, POS_NEW_CP_sum, tract_pop, tract_pop10k)%>%
-#   filter(is.na(tract_pop10k)==F)
-  
-
-  # group_by(countyf)%>%
-  # mutate(mn_pri_ruca = round(mean(as.numeric(pri_rucaf)), digits = 0))%>%
-  # distinct(countyf, .keep_all = T)
-
-save(wisc_subruca_notime, file = "data/wisc_subruca_notime04202024.rda")
-load("data/wisc_subruca_notime04202024.rda")
-
-## county only----
-wisc_ctruca_notime <- wisc_subruca_notime%>%
+wisc_countywk_train <- inner_join(wisc_countywk, train, by="countyf")%>%
+  ungroup()%>%
   group_by(countyf)%>%
-  mutate(mn_pri_ruca = round(mean(as.numeric(pri_rucaf)), digits = 0))
+  arrange(week)%>%
+  mutate(prior_POS_CP1 = lag(POS_NEW_CP_sum_ct),
+         prior_POS_CP = case_when(
+           is.na(prior_POS_CP1) ~0,
+           T~prior_POS_CP1
+         ))%>%
+  select(-prior_POS_CP1)
+
+wisc_tractwk_test <- inner_join(wisc_tractwk, test, by="countyf")%>%
+  ungroup()%>%
+  group_by(geoidf)%>%
+  arrange(week)%>%
+  mutate(prior_POS_CP1 = lag(POS_NEW_CP_sum),
+         prior_POS_CP = case_when(
+           is.na(prior_POS_CP1) ~0,
+           T~prior_POS_CP1
+         ))%>%
+  select(-prior_POS_CP1)
 
 
-ct_pop_cases <- wisc_ctruca_notime%>%
+wisc_countywk_test <- inner_join(wisc_countywk, test, by="countyf")%>%
+  ungroup()%>%
   group_by(countyf)%>%
-  summarise(county_pop10k = (sum(tract_pop)/1e4),
-            county_cases = sum(POS_NEW_CP_sum))
+  arrange(week)%>%
+  mutate(prior_POS_CP1 = lag(POS_NEW_CP_sum_ct),
+         prior_POS_CP = case_when(
+           is.na(prior_POS_CP1) ~0,
+           T~prior_POS_CP1
+         ))%>%
+  select(-prior_POS_CP1)
 
-ct_ruca <- wisc_ctruca_notime%>%
-  group_by(countyf)%>%
-  distinct(countyf, .keep_all = T)%>%
-  select(countyf, mn_pri_ruca)
+# save test/train datasets
+save(wisc_tractwk_train, file = "data/wisc_tractwk_train05022024.rda")
+save(wisc_tractwk_test, file = "data/wisc_tractwk_test05022024.rda")
+save(wisc_countywk_train, file = "data/wisc_countywk_train05022024.rda")
+save(wisc_countywk_test, file = "data/wisc_countywk_test05022024.rda")
 
-wisc_ctonly_notime <- left_join(ct_ruca, ct_pop_cases, by="countyf")
 
-# misc code and data exploration----
-# oo <- options(repos = "https://cran.r-project.org/")
-# install.packages("Matrix")
-# install.packages("lme4")
-# options(oo)
-# 
-# 
-# chk <- wisc_raw%>%
-#   group_by(GEOID)%>%
-#   summarise(n_obs = n())
-# 
-# chk2 <- wisc%>%
-#   group_by(tract_fips10)%>%
-#   summarise(n_obs = n())
-# 
-# chk <- wisc_raw%>%
-#   filter(str_detect(str_to_lower(GEOID, "/")))
-# 
-# colnames(wisc_raw2)
-# 
-# # c(55025991702,
-# #   55025991703,
-# #   55031990000,
-# #   55059990000,
-# #   55071990000,
-# #   55075990000,
-# #   55079980000,
-# #   55083990000,
-# #   55089990000 )
