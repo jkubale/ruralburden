@@ -54,12 +54,20 @@ wisc_ruca <- read_excel("data/ruca2010revised.xlsx", skip = 1)%>%
 ## create tract dataset by week
 wisc_tractwk <- raw_impshp(wisc_raw, vars)
 
+chk <- wisc_tractwk%>%
+  filter(countyf == "Milwaukee County", week==100)%>%
+  select(geoidf, countyf, week, POS_NEW_CP_sum)
+
 ## create county dataset by week
 wisc_countywk <- wisc_tractwk%>%
   ungroup()%>%
   group_by(countyf, week)%>%
   summarise(across(contains("NEW"), sum, .names = "{.col}_ct"))
   
+chk_county <- wisc_countywk%>%
+  filter(countyf == "Milwaukee County", week==100)%>%
+  select(countyf, week, POS_NEW_CP_sum_ct)
+
 
 # get number/proportion of each ruca score by county
 ruca_num <- wisc_ruca%>%

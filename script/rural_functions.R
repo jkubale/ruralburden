@@ -3,7 +3,7 @@
 raw_impshp <- function(data, ...){
   # v <- c(...)
   data%>%
-  select(...)%>%
+  select(all_of(...))%>%
    ## add week variable to summarize
   mutate(date = mdy(Date),
          week = as.numeric(floor(interval(as.Date("2020-01-22"), date)/weeks(1)+1)))%>%
