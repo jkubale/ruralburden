@@ -16,3 +16,7 @@ raw_impshp <- function(data, ...){
     mutate(tract_pop10k = tract_pop/1e4)
 }
 
+mean.func <- function(x, index){
+  d <- x[index]
+  return(mean(d))
+}

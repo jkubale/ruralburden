@@ -1,6 +1,8 @@
 # library(lme4)
 library(glmmTMB)
 # library(mgcv)
+library(boot)
+library(Hmisc)
 library(tictoc)
 library(dplyr)
 library(splines)
@@ -28,24 +30,42 @@ toc()
 
 ## need to double check county sums of confirmed and probable cases
 tic()
-county_genp1 <- glmmTMB(POS_NEW_CP_sum_ct ~ mn_wt_ruca_rnd + 
-                         ns(week) + 
-                         ns(prior_POS_CP) + 
-                         (1|countyf), data=wisc_countywk_train, family = genpois)
+tract_genp2 <- glmmTMB(POS_NEW_CP_sum ~ pri_rucaf + 
+                         bs(week) + 
+                         bs(prior_POS_CP) + 
+                         # (1|geoidf) + 
+                         (1|countyf), data=wisc_tractwk_train, family = genpois)
+# likelihood ratio test for variance component (mixture based) -- chapter 2
+# stratified models by RUCA and run likelihood ratio test
+# website for textbook that has brms code 
+# chapter 6 of book 
+
+# county_genp1 <- glmmTMB(POS_NEW_CP_sum_ct ~ mn_wt_ruca_rnd + 
+#                          ns(week) + 
+#                          ns(prior_POS_CP) + 
+#                          (1|countyf), data=wisc_countywk_train, family = genpois)
 toc()
 
-saveRDS(wisc_tractwk_train, file = "data/wisc_tractwk_train05032024.rds")
-saveRDS(wisc_countywk_train, file = "data/wisc_countywk_train05032024.rds")
+saveRDS(tract_genp1, file = "data/tract_genp105072024.rds")
+saveRDS(county_genp1, file = "data/county_genp105072024.rds")
+
+save(wisc_tractwk_train, file = "data/wisc_tractwk_train05032024.rda")
+save(wisc_countywk_train, file = "data/wisc_countywk_train05032024.rda")
+
+readRDS("data/wisc_tractwk_train05032024.rds")
+readRDS("data/wisc_countywk_train05032024.rds")
 
 summary(tract_genp1)
+summary(tract_genp2)
+
 summary(county_genp1)
 
-## make predictions----
+## make predictions using test data----
 load("data/wisc_tractwk_test05022024.rda")
 load("data/wisc_countywk_test05022024.rda")
 
-wisc_tractwk_test$week_shift <- wisc_tractwk_test$week - 104
-wisc_countywk_test$week_shift <- wisc_countywk_test$week - 104
+# wisc_tractwk_test$week_shift <- wisc_tractwk_test$week - 104
+# wisc_countywk_test$week_shift <- wisc_countywk_test$week - 104
 wisc_countywk_test$mn_wt_ruca_rnd <- factor(round(wisc_countywk_test$mn_wt_ruca,0),ordered=F)
 
 tract_test <- wisc_tractwk_test%>%
@@ -61,6 +81,15 @@ county_test <- wisc_countywk_test%>%
 tract_pred <- data.frame(pred = predict(tract_genp1, newdata = tract_test, re.form = NA, type = "response"))%>%
   bind_cols(., wisc_tractwk_test)
 summary(tract_pred)
+
+tract_ruca <- tract_pred%>%
+  ungroup()%>%
+  select(pred, week, pri_rucaf)%>%
+  group_by(pri_rucaf, week)%>%
+  group_map(~ smean.cl.boot(., conf.int = .95, B = 10000, na.rm = TRUE)) %>%
+  bind_rows()
+
+?Hmisc::smean.cl.boot()
 
 data.frame(RMSE = Metrics::rmse(wisc_tractwk_test$POS_NEW_CP_sum, tract_pred$pred),
            R2 = (cor(wisc_tractwk_test$POS_NEW_CP_sum, tract_pred$pred))^2,
