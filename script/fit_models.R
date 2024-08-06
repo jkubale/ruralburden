@@ -6,7 +6,7 @@ library(Hmisc)
 library(tictoc)
 library(dplyr)
 library(splines)
-library(Metrics)
+# library(Metrics)
 
 ## Load datasets----
 
@@ -41,10 +41,12 @@ toc()
 
 summary(w_tract_genp1)
 ###### log likelihood -195148.4  
+dev_conv(w_tract_genp1)
+dev_dif(w_county_genp1, w_tract_genp1)
 
 ##### Likelihood ratio test of models
 ((-195154.3)*(-2)) - ((-195148.4)*(-2))
-(0.5*(1-pchisq(11.8,1))+0.5*(1-pchisq(11.8,2))) ## 0.0017
+(0.5*(1-pchisq(11.7,1))+0.5*(1-pchisq(11.7,2))) ## 0.0017
 
 #### Stratified models county only
 
@@ -56,6 +58,9 @@ w_countymetro_genp1 <- glmmTMB(POS_NEW_CP_sum ~ pri_rucaf +
                             (1|countyf), data=w_tractm_metro, family = genpois, REML=T)
 toc()
 summary(w_countymetro_genp1)
+
+str(w_countymetro_genp1)
+
 
 ##### Micro
 tic()

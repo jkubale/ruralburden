@@ -20,7 +20,34 @@ raw_impshp <- function(data, ...){
     mutate(tract_pop10k = tract_pop2010/1e4)
 }
 
-mean.func <- function(x, index){
-  d <- x[index]
-  return(mean(d))
+
+## Extract log-likelihood from model and convert to deviance
+dev_conv <- function(model){
+  ((logLik(model)[1])*(-2))
 }
+
+dev_dif <- function(model1, model2){
+  dev_conv(model1) - dev_conv(model2)
+}
+
+## county only models
+
+county_mod <- function(dat){
+glmmTMB(POS_NEW_CP_sum ~ pri_rucaf + 
+          bs(month_shift) + 
+          bs(prior_POS_CP) + 
+          (1|countyf), data=dat, family = genpois, REML=T)
+}
+
+## County + tract models
+tract_mod <- function(dat){
+  glmmTMB(POS_NEW_CP_sum ~ pri_rucaf + 
+            bs(month_shift) + 
+            bs(prior_POS_CP) + 
+            (1|countyf) + (1|geoidf), data=dat, family = genpois, REML=T)
+}
+# 
+# mean.func <- function(x, index){
+#   d <- x[index]
+#   return(mean(d))
+# }
