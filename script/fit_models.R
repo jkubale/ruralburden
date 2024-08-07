@@ -1,12 +1,15 @@
 # Fit models
 
 library(glmmTMB)
-library(boot)
-library(Hmisc)
+# library(boot)
+# library(Hmisc)
 library(tictoc)
 library(dplyr)
 library(splines)
 # library(Metrics)
+
+## Call functions 
+source("script/rural_functions.r")
 
 ## Load datasets----
 
@@ -40,43 +43,66 @@ w_tract_genp1 <- glmmTMB(POS_NEW_CP_sum ~ pri_rucaf +
 toc()
 
 summary(w_tract_genp1)
-###### log likelihood -195148.4  
-dev_conv(w_tract_genp1)
-dev_dif(w_county_genp1, w_tract_genp1)
 
 ##### Likelihood ratio test of models
-((-195154.3)*(-2)) - ((-195148.4)*(-2))
-(0.5*(1-pchisq(11.7,1))+0.5*(1-pchisq(11.7,2))) ## 0.0017
+mod_lrt(w_county_genp1, w_tract_genp1) ## 0.0018
 
-#### Stratified models county only
+
+#### Stratified models 
 
 ##### Metro
+
+## County
 tic()
-w_countymetro_genp1 <- glmmTMB(POS_NEW_CP_sum ~ pri_rucaf + 
-                            bs(month_shift) + 
-                            bs(prior_POS_CP) + 
-                            (1|countyf), data=w_tractm_metro, family = genpois, REML=T)
+w_countymetro_genp1 <- s_county_mod(w_tractm_metro)
 toc()
-summary(w_countymetro_genp1)
 
-str(w_countymetro_genp1)
+summary(w_countymetro_genp2)
 
+## Tract
+tic()
+w_tractmetro_genp1 <- s_tract_mod(w_tractm_metro)
+toc()
+
+summary(w_tractmetro_genp1)
+
+## LRT comparing models
+mod_lrt(w_countymetro_genp2, w_tractmetro_genp1) ## 0.000017
 
 ##### Micro
+## County
 tic()
-w_countymicro_genp1 <- glmmTMB(POS_NEW_CP_sum ~ pri_rucaf + 
-                                 bs(month_shift) + 
-                                 bs(prior_POS_CP) + 
-                                 (1|countyf), data=w_tractm_micro, family = genpois, REML=T)
+w_countymicro_genp1 <- s_county_mod(w_tractm_micro)
 toc()
+
 summary(w_countymicro_genp1)
 
-##### Rural
+## Tract
 tic()
-w_countyrural_genp1 <- glmmTMB(POS_NEW_CP_sum ~ pri_rucaf + 
-                                 bs(month_shift) + 
-                                 bs(prior_POS_CP) + 
-                                 (1|countyf), data=w_tractm_rural, family = genpois, REML=T)
+w_tractmicro_genp1 <- s_tract_mod(w_tractm_micro)
 toc()
+
+summary(w_tractmicro_genp1)
+
+## LRT comparing models
+mod_lrt(w_countymicro_genp1, w_tractmicro_genp1) ## 1
+
+##### Rural
+## County
+tic()
+w_countyrural_genp1 <- s_county_mod(w_tractm_rural)
+toc()
+
 summary(w_countyrural_genp1)
-#### Stratified models county + tract
+
+## County
+tic()
+w_tractrural_genp1 <- s_tract_mod(w_tractm_rural)
+toc()
+
+summary(w_tractrural_genp1)
+
+
+## LRT comparing models
+mod_lrt(w_countyrural_genp1, w_tractrural_genp1) ## 1
+

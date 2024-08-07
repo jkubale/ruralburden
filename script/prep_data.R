@@ -6,6 +6,7 @@ library(stringr)
 library(dplyr)
 library(lubridate)
 library(ggplot2)
+library(tidyr)
 
 ## Call functions 
 source("script/rural_functions.r")
@@ -72,3 +73,30 @@ w_tractm_rural <- filter(wisc_tractm, pri_rucaf %in% c("7","8","9", "10"))
 save(w_tractm_metro, file = "data/w_tractm_metro07112024.rda")
 save(w_tractm_micro, file = "data/w_tractm_micro07112024.rda")
 save(w_tractm_rural, file = "data/w_tractm_rural07112024.rda")
+
+
+## Rhode Island----
+### Load data----
+ri <- read.csv("data/RhodeIslandMonthlyCasesByCensusTract2022(2010Census).csv")%>%
+  select(-c("X.blank.", "Grand.Total"))%>%
+  ## convert all * to blanks and then to NA by changing to numeric
+  mutate(across(contains("X"), ~ as.numeric(ifelse(. %in% c("*",""), NA, .))))%>%
+  ## drop "X" from date variable names as those will become values
+  rename_with(., ~substr(.,2,8), starts_with("X"))%>%
+  pivot_longer(!Census.Tract, names_to = "date", values_to = "cases")
+
+names_chk <- colnames(ri[2:23])%>%
+  substr(., 2,8)
+
+## Delaware----
+
+## Louisiana----
+
+## New Mexico----
+# Holding off until I can get longitudinal data with 2010 geography
+### Load data----
+
+# nm <- read_stata("data/NewMexico_covid_tract20_dates_20231012_subset.dta")%>%
+#   zap_label()
+# colnames(nm)
+# head(nm)

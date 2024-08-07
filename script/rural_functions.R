@@ -26,8 +26,10 @@ dev_conv <- function(model){
   ((logLik(model)[1])*(-2))
 }
 
-dev_dif <- function(model1, model2){
-  dev_conv(model1) - dev_conv(model2)
+## calculate difference and conduct modified likelihood ratio test
+mod_lrt <- function(model1, model2){
+  dif = dev_conv(model1) - dev_conv(model2)
+  (0.5*(1-pchisq(dif,1))+0.5*(1-pchisq(dif,2)))
 }
 
 ## county only models
