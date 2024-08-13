@@ -20,8 +20,68 @@ nm_tracts <- tracts(state = "NM", cb = T, year = 2010)%>%
   mutate(geoidf = factor(paste0(STATE,COUNTY,TRACT), ordered=F))%>%
   select(STATE, geoidf, geometry)
 
+nm_tractm_geo <- left_join(nm_tractm, nm_tracts, by="geoidf")%>%
+  group_by(date, geoidf)%>%
+  mutate(
+    # pop_sum10k = (sum(tract_pop2010)/1e4),
+    cases_sum = sum(cases_int),
+    rate10k = cases_sum/tract_pop10k,
+    rate10k2 = case_when(
+      rate10k==0 ~ NA,
+      T~rate10k
+    ))
 
-plot(nm_tracts)
+## maps of covid cases
+
+### NM
+chk <- filter(nm_tractm_geo, month==10)
+
+nm_geo <-  ggplot(nm_tractm_geo)+
+  geom_sf(aes(geometry=geometry, group=geoidf, fill=rate10k))+
+  scale_fill_distiller(
+    na.value = "#FFFFCC",
+    palette = "YlOrRd",
+    direction = 1)+
+  labs(fill="COVID-19 Cases per 10,000")+
+  theme_void()+
+  theme(
+    legend.position = "top"
+  )
+
+
+# "#FFFFCC" "#FEB24C" "#F03B20"
+nm_geo_time <- nm_geo+transition_time(date)
+anim_save("output/gifs/nm_geotime.gif", nm_geo_time)
+
+### WI
+load("data/wisc_tractm_08132024.rda")
+
+wi_tractm_geo <- left_join(wisc_tractm2, wi_tracts, by="geoidf")%>%
+  group_by(mon_yr, geoidf)%>%
+  mutate(
+    # pop_sum10k = (sum(tract_pop2010)/1e4),
+    cases_sum = sum(POS_NEW_CP_sum),
+    rate10k = cases_sum/tract_pop10k
+    # rate10k2 = case_when(
+    #   rate10k==0 ~ NA,
+    #   T~rate10k
+    )
+chk <- filter(wi_tractm_geo, month==10)
+
+wi_geo <- ggplot(wi_tractm_geo)+
+  geom_sf(aes(geometry=geometry, group=geoidf, fill=rate10k))+
+  scale_fill_distiller(
+    na.value = "#FFFFCC",
+    palette = "YlOrRd",
+    direction = 1)+
+  labs(fill="COVID-19 Cases per 10,000")+
+  theme_void()+
+  theme(
+    legend.position = "top"
+  )
+
+wi_geo_time <- wi_geo+transition_time(mon_yr)
+anim_save("output/gifs/wi_geotime.gif", wi_geo_time)
 
 ## incidence rate over time
 
@@ -55,6 +115,12 @@ ggplot(aes(x = date, y = rate10k, group = geoidf, color = ruca_cat))+
   
 nm_line_t <- nm_line+transition_reveal(date)
 anim_save("output/gifs/nm_tractline.gif",nm_line_t)
+
+## save static plot
+png(filename = "slides/figures/nm_tractline.png")
+nm_line
+dev.off()
+
 ### WI
 scico(3, palette = "vik")
 
@@ -103,5 +169,8 @@ wi_line <-  wisc_tractm2%>%
 wi_line_t <- wi_line+transition_reveal(mon_yr)
 anim_save("output/gifs/wi_tractline.gif", wi_line_t)
 
-
+## save static plot
+png(filename = "slides/figures/wi_tractline.png")
+wi_line
+dev.off()
 

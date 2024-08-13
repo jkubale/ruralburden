@@ -58,7 +58,7 @@ tic()
 w_countymetro_genp1 <- s_county_mod(w_tractm_metro, w_tractm_metro$POS_NEW_CP_sum, w_tractm_metro$prior_POS_CP)
 toc()
 
-summary(w_countymetro_genp2)
+summary(w_countymetro_genp1)
 
 ## Tract
 tic()
