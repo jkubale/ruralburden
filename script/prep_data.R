@@ -149,7 +149,6 @@ chk_de <- read_stata("data/Delaware_covid_tract10_dates_20231012_subset.dta")
 ## Louisiana----
 
 ## New Mexico----
-# Holding off until I can get longitudinal data with 2010 geography
 ### Load data----
 nm <- read_stata("data/NewMexicoMonthlyCasesByCensusTract2022_date_20231001_nhgis_tr2010_simple_share.dta")%>%
   zap_label()
