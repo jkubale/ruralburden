@@ -1,0 +1,177 @@
+---
+title: "Assessing the Importance of within County Heterogeneity of COVID-19 Burden in Rural, Micropolitan, and Urban Communities"
+author: "John Kubale"
+format: 
+  revealjs:
+    embeded-resources: true
+    slide-number: true
+    css: style.css
+---
+
+## Background {.smaller}
+-   During an outbreak attention is often focused on urban areas
+    + Often greater surveillance/infrastructure
+    + Place first noticed
+    + Potential for explosive growth (greater density and contact)
+    
+-   However, given the chance, even those that start/take off in urban areas will spread to rural and micropolitan areas
+    + West African Ebola Outbreak
+    + COVID-19
+
+Do we have granular enough data for non-urban areas?
+
+## Background {.smaller}
+-   With a few exceptions (generally large urban areas) most disease surveillance in U.S. goes no lower than county level.
+-   We know that county-level data fails to capture the full story in large metropolitan areas, but what about more rural areas?
+
+![](figures/bkgrnd_papers.png)
+
+## Broad research questions {.smaller}
+1. Does within county heterogeneity exist in COVID-19 burden?
+2. Characterize COVID-19 burden and severity across spectrum of rurality/urbanicity and how this is modified by community-level factors.
+
+
+## Broad research questions {.smaller}
+1. **Does within county heterogeneity exist in COVID-19 burden?**
+2. Characterize COVID-19 burden and severity across spectrum of rurality/urbanicity and how this is modified by community-level factors.
+
+What do we expect to find?
+
+-   No apparent heterogeneity within micropolitan and rural counties
+-   Consistent heterogeneity within micropolitan and rural counties
+-   Inconsistent heterogeneity within micropolitan and rural counties
+
+
+## Data {.smaller}
+-   To try and answer this question we're using data from the COVID Neighborhood Project (CONEP).
+    + A data collection effort to bring fine-scale, spatially-referenced data on COVID-19 together with data from the National Neighborhood Data Archive (NaNDA).
+    + Currently have data from 21 states: 5 at Census tract level and 16 at Zip code level
+
+![](figures/conep.png)
+
+## Methods {.smaller}
+-   We will focus on the 5 states with Census Tract data as tracts are nested within counties.
+    + **Wisconsin**, **New Mexico**, Louisiana, Delaware, Rhode Island
+-   Will fit generalized linear mixed effects models (GLMMs)
+    + With a random effect for county only
+    + With random effects for county and tract
+    + Both models also include RUCA, calendar month, and cases from prior month
+-   Can then do a modified likelihood ratio test of the models to assess whether the random effect for tract is needed to account for within county heterogeneity
+    + Modified because under the $H_0$ that a given variance component equals 0, the test statistic follows a mixture of chi-square distributions.
+    + Also fit stratified models (metropolitan, micropolitan, and rural) to assess how this may vary by rurality.
+
+# Results
+
+## Wisconsin - Overall model {.smaller}
+-   The overall model with random effects for both county *and* tract fit better than the model with only a random effect for county.
+    + Modified LRT (p < 0.0001)
+
+:::: {.columns}
+
+::: {.column width=50%}
+![](../output/gifs/wi_tractline.gif)
+:::
+
+::: {.column width=50%}
+![](figures/wi_tractline.png)
+:::
+::::
+
+## Wisconsin - Stratified models {.smaller}
+-   Only the metropolitan model (RUCA = 1-3) showed meaningful within county variance.
+    + Based on modified LRT (p < 0.0001)
+
+![](../output/gifs/wi_geotime.gif)
+
+## New Mexico - Overall model {.smaller}
+-   The overall model with random effects for both county *and* tract fit better than the model with only a random effect for county.
+    + Modified LRT (p < 0.0001)
+
+:::: {.columns}
+
+::: {.column width=50%}
+![](../output/gifs/nm_tractline.gif)
+:::
+
+::: {.column width=50%}
+![](figures/nm_tractline.png)
+
+:::
+
+::::
+
+## New Mexico - Stratified models {.smaller}
+-   Both the metropolitan model (RUCA = 1-3) and the rural model (RUCA = 7-10) showed meaningful within county variance.
+    + Modified LRT in both cases p < 0.0001
+    
+![](../output/gifs/nm_geotime.gif)
+    
+## Conclusions {.smaller}
+-   There is within county variability in non-metro areas, but it's not consistent.
+    + Need to explore what contributes to the whether this within-county heterogeneity exists in rural and micropolitan communities.
+-   Need to assess how meaningful this is for forecasting.
+
+## Next steps {.smaller}
+:::: {.columns}
+
+::: {.column width=50%}
+
+**Short Term**
+
+-   Process other state data and run models to assess within county variance.
+-   Assess whether this within county variance has a meaningful impact on forecasting.
+-   Characterize burden/severity of COVID-19 across spectrum of rurality and impact of community-level factors
+:::
+
+::: {.column width=50%}
+
+**Longer Term**
+
+-   Explore feeding data into model(s) used as part of CDC ensemble forecast
+-   Explore Bayesian approach that allows correlation structure to vary
+    + To my knowledge not currently possible from frequentist approach in R
+-   How robust are our findings to other measures of rurality/urbanicity?
+
+:::
+
+::::
+
+## Acknowledgements {.smaller}
+:::: {.columns}
+
+::: {.column width=40%}
+![](figures/isr.png)
+
+![](figures/seeid.png)
+
+![](figures/conep.png)
+
+:::
+
+::: {.column width=60%}
+A big thank you to my collaborators!
+
+-   Grace Noppert
+-   Andrew Hoover
+-   Brady West
+-   Robert Melendez
+-   Fan Bu
+-   Paul Schulz
+-   Sonia Hegde
+-   Philippa Clarke
+-   The state health departments
+
+:::
+
+::::
+
+This work is supported by a pilot grant from the Interdisciplinary Network on Rural Population Health and Aging which is funded by the National Institute on Aging (grant R24-AG065159).
+
+
+## Questions/comments?
+
+Contact me!
+
+-   jkubale@umich.edu
+-   @jkubale
+

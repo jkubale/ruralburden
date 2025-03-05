@@ -90,6 +90,26 @@ s_tract_mod <- function(outcome, prior_m, dat){
             bs({{prior_m}}) + 
             (1|countyf) + (1|geoidf), data=dat, family = genpois, REML=T)
 }
+
+
+## fit mvgam models
+fit_mvgam <- function(dat, months){
+  
+  df <- dat  
+  data_train = df[df$time <= months,]
+  data_test = df[df$time == (months+1),]
+  
+  mvgam(cases_int ~ s(time, bs = "cr", k=(months - 1)) + s(countyf, bs = "re") + s(geoidf, bs = "re"),
+        family = poisson(),
+        data = data_train,
+        newdata = data_test,
+        trend_model = 'AR1',
+        noncentred = T,
+        silent = 2)
+}
+
+
+
 # 
 # mean.func <- function(x, index){
 #   d <- x[index]
